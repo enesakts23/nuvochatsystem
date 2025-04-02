@@ -2,6 +2,11 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QLineEdit, QPushButton, QScrollArea, QFrame, QSizePolicy)
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QIcon, QPainter, QColor
+import requests
+import json
+
+GEMINI_API_KEY = "AIzaSyDGGMxVE1OBp0A1ZI_hbIcjhJ12nLgM1-Y"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 class IconButton(QPushButton):
     def __init__(self, icon_path, size=24, tooltip=""):
@@ -210,12 +215,40 @@ class AiPage(QWidget):
         # Set initial light theme
         self.apply_theme(is_dark=False)
         
+    def get_ai_response(self, user_message):
+        try:
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            
+            data = {
+                "contents": [{
+                    "parts": [{"text": user_message}]
+                }]
+            }
+            
+            response = requests.post(
+                f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
+                headers=headers,
+                json=data
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                if 'candidates' in response_data and len(response_data['candidates']) > 0:
+                    return response_data['candidates'][0]['content']['parts'][0]['text']
+            return "Üzgünüm, şu anda yanıt üretemiyorum. Lütfen tekrar deneyin."
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return "Bir hata oluştu. Lütfen tekrar deneyin."
+        
     def process_message(self, text):
         # Add user message
         self.chat_area.add_message(text, is_user=True)
         
-        # Simulate AI response (replace with actual AI processing later)
-        self.chat_area.add_message("Bu bir örnek AI yanıtıdır. Gerçek yanıt entegrasyonu yapılacak.", is_user=False)
+        # Get AI response using Gemini
+        ai_response = self.get_ai_response(text)
+        self.chat_area.add_message(ai_response, is_user=False)
     
     def apply_theme(self, is_dark):
         # Update background colors
