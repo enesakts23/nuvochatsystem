@@ -57,39 +57,57 @@ class ChatBubble(QFrame):
         message = QLabel(text)
         message.setWordWrap(True)
         message.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        message.setStyleSheet("QLabel { padding: 8px; }")
         
         if is_user:
             self.layout.addStretch()
             self.layout.addWidget(message)
             self.layout.addLayout(self.icon_layout)
-            style = """
-                background-color: #444654;
-                border-radius: 12px;
-                padding: 12px;
-                color: white;
-            """
         else:
             self.layout.addLayout(self.icon_layout)
             self.layout.addWidget(message)
             self.layout.addStretch()
-            style = """
-                background-color: #343541;
+            
+        self.update_style()
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+    def update_style(self, is_dark=True):
+        if is_dark:
+            user_bg = "#19C37D"  # Yeşil
+            ai_bg = "#444654"    # Koyu gri
+            text_color = "white"
+            border = "none"
+            shadow_color = "rgba(0, 0, 0, 0.3)"
+        else:
+            user_bg = "#19C37D"  # Yeşil
+            ai_bg = "#F7F7F8"    # Açık gri
+            text_color = "black" if not self.is_user else "white"
+            border = "1px solid #E5E5E5"
+            shadow_color = "rgba(0, 0, 0, 0.1)"
+            
+        style = f"""
+            QFrame {{
+                background-color: {user_bg if self.is_user else ai_bg};
                 border-radius: 12px;
                 padding: 12px;
-                color: white;
-            """
-            
-        self.setStyleSheet(f"QFrame {{ {style} }}")
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+                color: {text_color};
+                border: {border};
+                margin: 8px 0px;
+            }}
+            QFrame {{
+                box-shadow: 0 2px 6px {shadow_color};
+            }}
+        """
+        self.setStyleSheet(style)
 
     def update_icon(self, is_dark=True):
         pixmap = QIcon(self.icon_path).pixmap(QSize(24, 24))
         if not is_dark:
-            # Aydınlık tema için ikonu #2198c1 rengine boyayalım
-            painter = QPainter(pixmap)
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
-            painter.fillRect(pixmap.rect(), QColor("#2198c1"))
-            painter.end()
+            if not self.is_user:  # Sadece AI ikonunu maviye boya
+                painter = QPainter(pixmap)
+                painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+                painter.fillRect(pixmap.rect(), QColor("#2198c1"))
+                painter.end()
         self.icon_label.setPixmap(pixmap)
 
 class ChatArea(QScrollArea):
@@ -258,8 +276,9 @@ class AiPage(QWidget):
         # Update all icons
         self.input_area.update_icons(is_dark)
         
-        # Update existing chat bubble icons
+        # Update existing chat bubble icons and styles
         for i in range(self.chat_area.chat_layout.count()):
             widget = self.chat_area.chat_layout.itemAt(i).widget()
             if isinstance(widget, ChatBubble):
-                widget.update_icon(is_dark) 
+                widget.update_icon(is_dark)
+                widget.update_style(is_dark) 
