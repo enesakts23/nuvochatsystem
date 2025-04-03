@@ -54,10 +54,12 @@ class ChatBubble(QFrame):
         self.icon_layout.addWidget(self.icon_label)
         self.icon_layout.addStretch()
         
-        message = QLabel(text)
+        message = QLabel()
         message.setWordWrap(True)
         message.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         message.setStyleSheet("QLabel { padding: 8px; }")
+        message.setTextFormat(Qt.TextFormat.RichText)  # Enable HTML formatting
+        message.setText(text)
         
         if is_user:
             self.layout.addStretch()
@@ -260,13 +262,40 @@ class AiPage(QWidget):
             print(f"Error: {str(e)}")
             return "Bir hata oluştu. Lütfen tekrar deneyin."
         
+    def format_text(self, text):
+        # Replace markdown with custom formatting
+        formatted_text = text.replace('**', '')  # Remove bold markers
+        
+        # Add custom bullet points and indentation
+        lines = formatted_text.split('\n')
+        formatted_lines = []
+        for line in lines:
+            if line.strip().startswith('*'):
+                # Convert markdown bullet points to custom style
+                line = line.replace('*', '•', 1)
+                line = '    ' + line  # Add indentation
+            elif line.strip().endswith(':'):
+                # Make headers more prominent
+                line = f'<b>{line}</b>'
+            formatted_lines.append(line)
+        
+        # Join lines with proper spacing
+        formatted_text = '\n'.join(formatted_lines)
+        
+        # Add some basic HTML formatting
+        formatted_text = formatted_text.replace('\n', '<br>')
+        
+        return formatted_text
+        
     def process_message(self, text):
         # Add user message
         self.chat_area.add_message(text, is_user=True)
         
         # Get AI response using Gemini
         ai_response = self.get_ai_response(text)
-        self.chat_area.add_message(ai_response, is_user=False)
+        # Format the AI response
+        formatted_response = self.format_text(ai_response)
+        self.chat_area.add_message(formatted_response, is_user=False)
     
     def apply_theme(self, is_dark):
         # Update background colors
